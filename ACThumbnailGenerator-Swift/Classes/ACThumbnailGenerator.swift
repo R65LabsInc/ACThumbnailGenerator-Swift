@@ -18,11 +18,15 @@ public class ACThumbnailGenerator: NSObject {
     var loading = false
     public weak var delegate: ACThumbnailGeneratorDelegate?
     
-    var timer: Timer?
+    private var timer: Timer?
+    private(set) var timeout: TimeInterval
     
-    public init(streamUrl: URL, preferredBitrate: Double = 0.0) {
+    private static let timeoutErrorDomain = "thumbnailgenerator"
+    
+    public init(streamUrl: URL, preferredBitrate: Double = 0.0, timeout: TimeInterval = 2) {
         self.streamUrl = streamUrl
         self.preferredBitrate = preferredBitrate
+        self.timeout = timeout
         super.init()
     }
     
@@ -110,10 +114,10 @@ public class ACThumbnailGenerator: NSObject {
             endTimeoutTimer()
         }
         
-        self.timer = Timer.scheduledTimer(withTimeInterval: 2, repeats: false) { [weak self] timer in
+        self.timer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { [weak self] timer in
             guard let sself = self else { return }
             timer.invalidate()
-            sself.delegate?.generator(sself, didThrowError: NSError(domain: "thumbnailgenerator", code: 404, userInfo: [:]))
+            sself.delegate?.generator(sself, didThrowError: NSError(domain: ACThumbnailGenerator.timeoutErrorDomain, code: 404, userInfo: [:]))
         }
     }
     
@@ -149,10 +153,10 @@ public class ACThumbnailGenerator: NSObject {
                     captureImage(at: position)
                 }
             } else {
-                delegate?.generator(self, didThrowError: nil)
+                delegate?.generator(self, didThrowError: NSError(domain: ACThumbnailGenerator.timeoutErrorDomain, code: 500, userInfo: [NSLocalizedDescriptionKey: "unable to generate image from pixel buffer"]))
             }
         } else {
-            delegate?.generator(self, didThrowError: nil)
+            delegate?.generator(self, didThrowError: NSError(domain: ACThumbnailGenerator.timeoutErrorDomain, code: 500, userInfo: [NSLocalizedDescriptionKey: "no pixel buffer for time: \(currentTime)"]))
         }
     }
 }
