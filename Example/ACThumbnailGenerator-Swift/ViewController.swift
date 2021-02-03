@@ -71,6 +71,10 @@ extension ViewController: ACThumbnailGeneratorDelegate {
         images.append(image)
         tableView.insertSections([images.count - 1], with: .fade)
     }
+    
+    func generator(_ generator: ACThumbnailGenerator, didThrowError error: Error?) {
+        
+    }
 }
 
 

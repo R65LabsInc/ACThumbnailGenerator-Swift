@@ -18,14 +18,16 @@ public class ACThumbnailGenerator: NSObject {
     var loading = false
     public weak var delegate: ACThumbnailGeneratorDelegate?
     
-    var timer: Timer
+    var timer: Timer!
     
     public init(streamUrl: URL, preferredBitrate: Double = 0.0) {
         self.streamUrl = streamUrl
         self.preferredBitrate = preferredBitrate
-        self.timer = Timer(timeInterval: 2, repeats: false) { timer in
+        super.init()
+        self.timer = Timer(timeInterval: 2, repeats: false) { [weak self] timer in
+            guard let sself = self else { return }
             timer.invalidate()
-            self.delegate?.generator(self, didThrowError: NSError(domain: "thumbnailgenerator", code: 404, userInfo: [:]))
+            sself.delegate?.generator(sself, didThrowError: NSError(domain: "thumbnailgenerator", code: 404, userInfo: [:]))
         }
     }
     
