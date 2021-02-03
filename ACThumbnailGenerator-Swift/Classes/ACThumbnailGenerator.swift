@@ -18,17 +18,12 @@ public class ACThumbnailGenerator: NSObject {
     var loading = false
     public weak var delegate: ACThumbnailGeneratorDelegate?
     
-    var timer: Timer!
+    var timer: Timer?
     
     public init(streamUrl: URL, preferredBitrate: Double = 0.0) {
         self.streamUrl = streamUrl
         self.preferredBitrate = preferredBitrate
         super.init()
-        self.timer = Timer(timeInterval: 2, repeats: false) { [weak self] timer in
-            guard let sself = self else { return }
-            timer.invalidate()
-            sself.delegate?.generator(sself, didThrowError: NSError(domain: "thumbnailgenerator", code: 404, userInfo: [:]))
-        }
     }
     
     deinit {
@@ -98,8 +93,7 @@ public class ACThumbnailGenerator: NSObject {
         }
         
         // begin timeout timer
-        timer.invalidate()
-        timer.fire()
+        startTimeoutTimer()
     }
     
     private func seek(to position: Double) {
@@ -109,6 +103,23 @@ public class ACThumbnailGenerator: NSObject {
         if CMTIME_IS_VALID(targetTime) {
             self.player?.seek(to: targetTime)
         }
+    }
+    
+    private func startTimeoutTimer() {
+        if timer != nil {
+            endTimeoutTimer()
+        }
+        
+        self.timer = Timer.scheduledTimer(withTimeInterval: 2, repeats: false) { [weak self] timer in
+            guard let sself = self else { return }
+            timer.invalidate()
+            sself.delegate?.generator(sself, didThrowError: NSError(domain: "thumbnailgenerator", code: 404, userInfo: [:]))
+        }
+    }
+    
+    private func endTimeoutTimer() {
+        timer?.invalidate()
+        timer = nil
     }
     
     override public func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
@@ -129,7 +140,8 @@ public class ACThumbnailGenerator: NSObject {
                 delegate?.generator(self, didCapture: image, at: CMTimeGetSeconds(currentTime))
                 
                 loading = false
-                timer.invalidate()
+                
+                endTimeoutTimer()
                 
                 // Capture the next position in the queue
                 if !queue.isEmpty {

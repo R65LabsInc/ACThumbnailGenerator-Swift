@@ -73,7 +73,7 @@ extension ViewController: ACThumbnailGeneratorDelegate {
     }
     
     func generator(_ generator: ACThumbnailGenerator, didThrowError error: Error?) {
-        
+        NSLog("error generating image: \(error?.localizedDescription)")
     }
 }
 
