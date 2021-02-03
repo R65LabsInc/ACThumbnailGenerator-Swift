@@ -4,6 +4,7 @@ import AVFoundation
 
 public protocol ACThumbnailGeneratorDelegate: class {
     func generator(_ generator: ACThumbnailGenerator, didCapture image: UIImage, at position: Double)
+    func generator(_ generator: ACThumbnailGenerator, didThrowError error: Error?)
 }
 
 public class ACThumbnailGenerator: NSObject {
@@ -17,9 +18,15 @@ public class ACThumbnailGenerator: NSObject {
     var loading = false
     public weak var delegate: ACThumbnailGeneratorDelegate?
     
+    var timer: Timer
+    
     public init(streamUrl: URL, preferredBitrate: Double = 0.0) {
         self.streamUrl = streamUrl
         self.preferredBitrate = preferredBitrate
+        self.timer = Timer(timeInterval: 2, repeats: false) { timer in
+            timer.invalidate()
+            self.delegate?.generator(self, didThrowError: NSError(domain: "thumbnailgenerator", code: 404, userInfo: [:]))
+        }
     }
     
     deinit {
@@ -87,6 +94,10 @@ public class ACThumbnailGenerator: NSObject {
         else {
             seek(to: position)
         }
+        
+        // begin timeout timer
+        timer.invalidate()
+        timer.fire()
     }
     
     private func seek(to position: Double) {
@@ -116,13 +127,18 @@ public class ACThumbnailGenerator: NSObject {
                 delegate?.generator(self, didCapture: image, at: CMTimeGetSeconds(currentTime))
                 
                 loading = false
+                timer.invalidate()
                 
                 // Capture the next position in the queue
                 if !queue.isEmpty {
                     let position = queue.removeFirst()
                     captureImage(at: position)
                 }
+            } else {
+                delegate?.generator(self, didThrowError: nil)
             }
+        } else {
+            delegate?.generator(self, didThrowError: nil)
         }
     }
 }
