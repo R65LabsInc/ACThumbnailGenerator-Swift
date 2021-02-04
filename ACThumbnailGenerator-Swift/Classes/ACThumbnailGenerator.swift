@@ -9,7 +9,7 @@ public protocol ACThumbnailGeneratorDelegate: class {
 
 public class ACThumbnailGenerator: NSObject {
     private(set) var preferredBitrate: Double
-    private(set) var streamUrl: URL
+    public private(set) var streamUrl: URL
     private(set) var queue: [Double] = []
     
     private var player: AVPlayer?
@@ -21,9 +21,9 @@ public class ACThumbnailGenerator: NSObject {
     private var timer: Timer?
     private(set) var timeout: TimeInterval
     
-    private static let timeoutErrorDomain = "thumbnailgenerator"
+    private static let errorDomain = "thumbnailgenerator"
     
-    public init(streamUrl: URL, preferredBitrate: Double = 0.0, timeout: TimeInterval = 2) {
+    public init(streamUrl: URL, preferredBitrate: Double = 0.0, timeout: TimeInterval = 5) {
         self.streamUrl = streamUrl
         self.preferredBitrate = preferredBitrate
         self.timeout = timeout
@@ -117,7 +117,7 @@ public class ACThumbnailGenerator: NSObject {
         self.timer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { [weak self] timer in
             guard let sself = self else { return }
             timer.invalidate()
-            sself.delegate?.generator(sself, didThrowError: NSError(domain: ACThumbnailGenerator.timeoutErrorDomain, code: 404, userInfo: [:]))
+            sself.delegate?.generator(sself, didThrowError: NSError(domain: ACThumbnailGenerator.errorDomain, code: 404, userInfo: [:]))
         }
     }
     
@@ -153,10 +153,10 @@ public class ACThumbnailGenerator: NSObject {
                     captureImage(at: position)
                 }
             } else {
-                delegate?.generator(self, didThrowError: NSError(domain: ACThumbnailGenerator.timeoutErrorDomain, code: 500, userInfo: [NSLocalizedDescriptionKey: "unable to generate image from pixel buffer"]))
+                delegate?.generator(self, didThrowError: NSError(domain: ACThumbnailGenerator.errorDomain, code: 500, userInfo: [NSLocalizedDescriptionKey: "unable to generate image from pixel buffer"]))
             }
         } else {
-            delegate?.generator(self, didThrowError: NSError(domain: ACThumbnailGenerator.timeoutErrorDomain, code: 500, userInfo: [NSLocalizedDescriptionKey: "no pixel buffer for time: \(currentTime)"]))
+            delegate?.generator(self, didThrowError: NSError(domain: ACThumbnailGenerator.errorDomain, code: 500, userInfo: [NSLocalizedDescriptionKey: "no pixel buffer for time: \(currentTime)"]))
         }
     }
 }
